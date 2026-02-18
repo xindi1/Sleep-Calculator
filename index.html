@@ -1,0 +1,1197 @@
+<!doctype html>
+<html lang="en" data-theme="blue">
+<head>
+  <meta charset="utf-8" />
+  <title>Helio Time Tools</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1b3d" />
+  <meta name="description" content="Rugged stopwatch, timer, and 24-hour clock. Offline-first PWA." />
+  <link rel="manifest" href="./manifest.json">
+
+  <style>
+    :root{
+      --bg:#0b1b3d;
+      --panel:#0f172a;
+      --card:#020617;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:#1f2937;
+      --accent:#60a5fa;
+      --badge:#111827;
+
+      --g-night: radial-gradient(circle at top, #020617 0, #020617 45%, #000000 90%);
+      --g-dawn:  radial-gradient(circle at top, #1e293b 0, #0b1b3d 45%, #020617 90%);
+      --g-day:   radial-gradient(circle at top, #1d4ed8 0, #0b1b3d 45%, #020617 90%);
+      --g-dusk:  radial-gradient(circle at top, #7c2d12 0, #0b1b3d 45%, #020617 90%);
+    }
+    html[data-theme="light"]{
+      --bg:#e5f0ff;
+      --panel:#ffffff;
+      --card:#f1f5f9;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:#cbd5e1;
+      --accent:#2563eb;
+      --badge:#e2e8f0;
+
+      --g-night: radial-gradient(circle at top, #020617 0, #020617 45%, #020617 90%);
+      --g-dawn:  radial-gradient(circle at top, #dbeafe 0, #e5f0ff 45%, #e2e8f0 90%);
+      --g-day:   radial-gradient(circle at top, #bfdbfe 0, #eff6ff 45%, #e2e8f0 90%);
+      --g-dusk:  radial-gradient(circle at top, #fed7aa 0, #fee2e2 45%, #e2e8f0 90%);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:var(--text);
+      background:var(--g-dawn);
+      padding:16px;
+      transition:background .6s ease;
+    }
+    .shell{max-width:980px;margin:0 auto}
+    .frame{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:20px;
+      box-shadow:0 14px 30px rgba(15,23,42,.35);
+      padding:16px 18px 18px;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    h1{
+      margin:0;
+      font-size:1.15rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .sub{
+      margin-top:3px;
+      font-size:.82rem;
+      color:var(--muted);
+    }
+
+    .theme-toggle{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border-radius:999px;
+      padding:3px 6px;
+      background:var(--card);
+      border:1px solid var(--border);
+      font-size:.72rem;
+      user-select:none;
+    }
+    .theme-toggle span{padding-left:4px;color:var(--muted)}
+    .theme-toggle button{
+      border-radius:999px;
+      border:none;
+      background:transparent;
+      color:var(--muted);
+      padding:3px 10px;
+      font-size:.72rem;
+      cursor:pointer;
+      font-family:inherit;
+    }
+    .theme-toggle button.active{background:var(--accent);color:#fff}
+
+    /* ACTION BAR (chip bar) */
+    .seg{
+      display:flex;
+      gap:8px;
+      padding:8px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.9);
+      overflow-x:auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width:none;
+      margin:6px 0 12px;
+    }
+    html[data-theme="light"] .seg{background:rgba(255,255,255,.95)}
+    .seg::-webkit-scrollbar{display:none}
+    .seg button{
+      flex:0 0 auto;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size:.9rem;
+      cursor:pointer;
+      font-family:inherit;
+      white-space:nowrap;
+    }
+    .seg button.active{
+      background: var(--accent);
+      border-color: transparent;
+      color:#fff;
+    }
+    .seg .danger{
+      border-color: rgba(239,68,68,.45);
+      color:#ef4444;
+    }
+    .seg .danger.active{
+      background:#ef4444;
+      border-color:transparent;
+      color:#fff;
+    }
+    .seg .warn{
+      border-color: rgba(251,191,36,.55);
+      color:#fbbf24;
+    }
+    .seg .warn.active{
+      background:#fbbf24;
+      border-color:transparent;
+      color:#111827;
+    }
+    .seg .ok{
+      border-color: rgba(77,255,181,.35);
+      color:#4dffb5;
+    }
+    .seg .ok.active{
+      background:#4dffb5;
+      border-color:transparent;
+      color:#041018;
+    }
+    .seg .hint{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:0 10px;
+      color:var(--muted);
+      font-size:.78rem;
+      white-space:nowrap;
+      opacity:.85;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap:12px;
+    }
+    @media(max-width:860px){.grid{grid-template-columns:1fr}}
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px 12px 13px;
+    }
+    .label{
+      font-size:.78rem;
+      color:var(--muted);
+      margin-bottom:4px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .hr{height:1px;background:rgba(148,163,184,.28);margin:10px 0;border-radius:999px}
+
+    input, select, textarea, button{
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:var(--panel);
+      color:var(--text);
+      padding:8px 10px;
+      font-size:.92rem;
+      font-family:inherit;
+    }
+    input::placeholder, textarea::placeholder{color:var(--muted)}
+    select{width:100%}
+
+    .btn-primary{background:var(--accent);border-color:transparent;color:#fff}
+    .btn-secondary{background:var(--panel)}
+    .btn-danger{background:transparent;border-color:rgba(239,68,68,.55);color:#ef4444}
+    .btn-warn{background:transparent;border-color:rgba(251,191,36,.55);color:#fbbf24}
+
+    .row{
+      display:grid;
+      grid-template-columns: 160px 1fr;
+      gap:10px;
+      align-items:center;
+      margin-top:10px;
+    }
+    @media(max-width:640px){
+      .row{grid-template-columns:1fr;gap:6px}
+    }
+
+    .inline{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .mono{
+      font-variant-numeric: tabular-nums;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    }
+    .big{
+      font-size:2.25rem;
+      font-weight:900;
+      letter-spacing:.05em;
+    }
+    .bigger{
+      font-size:2.75rem;
+      font-weight:950;
+      letter-spacing:.06em;
+    }
+    .small{font-size:.82rem;color:var(--muted)}
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(2,6,23,.35);
+    }
+    html[data-theme="light"] .chip{background:rgba(241,245,249,.85)}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(2,6,23,.35);
+      margin:4px 6px 0 0;
+    }
+    html[data-theme="light"] .pill{background:rgba(241,245,249,.85)}
+    .pill button{
+      padding:2px 8px;
+      border-radius:999px;
+      border-color:rgba(239,68,68,.55);
+      color:#ef4444;
+      background:transparent;
+      font-size:.8rem;
+      cursor:pointer;
+    }
+
+    .footer{
+      margin-top:12px;
+      padding-top:10px;
+      border-top:1px solid rgba(148,163,184,.28);
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      gap:8px;
+      font-size:.78rem;
+      color:var(--muted);
+    }
+    .footer strong{color:var(--text);font-weight:650}
+
+    /* toast */
+    #toast{
+      position:fixed;
+      left:14px;
+      bottom:14px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(96,165,250,.35);
+      background: rgba(0,0,0,.55);
+      color: var(--text);
+      font-size: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.45);
+      backdrop-filter: blur(6px);
+      z-index:9999;
+      opacity:0;
+      transition:opacity .2s ease;
+      max-width: calc(100vw - 28px);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+
+    .listItem{
+      border:1px solid rgba(148,163,184,.28);
+      border-radius:16px;
+      padding:10px 10px;
+      background: rgba(2,6,23,.25);
+    }
+    html[data-theme="light"] .listItem{background: rgba(241,245,249,.85)}
+    .listTop{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:baseline;
+      justify-content:space-between;
+    }
+    .listMeta{margin-top:6px;color:var(--muted);font-size:.82rem;line-height:1.35}
+    .listActions{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+
+    button[disabled]{opacity:.55;cursor:not-allowed}
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+    <div class="frame">
+      <header>
+        <div>
+          <h1>Helio Time Tools</h1>
+          <div class="sub">24‑hour clock • stopwatch • timer • offline PWA</div>
+        </div>
+        <div class="theme-toggle" id="themeToggle">
+          <span>Theme</span>
+          <button type="button" data-theme="blue" class="active">Blue</button>
+          <button type="button" data-theme="light">Light</button>
+        </div>
+      </header>
+
+      <!-- MODE BAR -->
+      <nav class="seg" aria-label="Mode">
+        <button type="button" class="active" data-mode="clock" id="tabClock">Clock</button>
+        <button type="button" data-mode="stopwatch" id="tabStopwatch">Stopwatch</button>
+        <button type="button" data-mode="timer" id="tabTimer">Timer</button>
+        <button type="button" class="ok" id="btnInstall" style="display:none">Install App</button>
+        <span class="hint">Swipe ➜</span>
+      </nav>
+
+      <div class="grid">
+        <!-- LEFT: MAIN -->
+        <section class="card" aria-label="Main" id="mainCard">
+          <!-- CLOCK -->
+          <div id="viewClock">
+            <div class="label">24‑Hour Clock</div>
+
+            <div class="row">
+              <div class="label" style="margin:0">Time</div>
+              <div class="inline">
+                <span class="chip"><span class="small">Now</span>&nbsp;<strong class="mono bigger" id="clockTime">00:00:00</strong></span>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="label" style="margin:0">Date</div>
+              <div class="inline">
+                <span class="chip"><span class="small">Local</span>&nbsp;<strong class="mono" id="clockDate">—</strong></span>
+                <span class="chip"><span class="small">TZ</span>&nbsp;<strong class="mono" id="clockTZ">—</strong></span>
+              </div>
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="inline">
+              <span class="chip"><span class="small">Seconds</span>&nbsp;<strong class="mono" id="clockSeconds">—</strong></span>
+              <span class="chip"><span class="small">Uptime</span>&nbsp;<strong class="mono" id="clockUptime">—</strong></span>
+            </div>
+
+            <div class="small" style="margin-top:10px">
+              Tip: Add to Home Screen for a full‑screen clock (PWA).
+            </div>
+          </div>
+
+          <!-- STOPWATCH -->
+          <div id="viewStopwatch" style="display:none">
+            <div class="label">Stopwatch</div>
+
+            <div class="row">
+              <div class="label" style="margin:0">Elapsed</div>
+              <div class="inline">
+                <span class="chip"><span class="small">Time</span>&nbsp;<strong class="mono bigger" id="swElapsed">00:00:00.0</strong></span>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="label" style="margin:0">Controls</div>
+              <div class="inline">
+                <button type="button" id="swStart" class="btn-primary">Start</button>
+                <button type="button" id="swPause" class="btn-warn" disabled>Pause</button>
+                <button type="button" id="swResume" disabled>Resume</button>
+                <button type="button" id="swLap" class="btn-secondary" disabled>Lap</button>
+                <button type="button" id="swReset" class="btn-danger" disabled>Reset</button>
+              </div>
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="label">Laps</div>
+            <div class="inline" style="justify-content:space-between">
+              <span class="chip"><span class="small">Count</span>&nbsp;<strong id="swLapCount">0</strong></span>
+              <span class="chip"><span class="small">Last</span>&nbsp;<strong class="mono" id="swLastLap">—</strong></span>
+            </div>
+
+            <div class="hr"></div>
+            <div id="swLapList"></div>
+            <div class="small" id="swEmpty" style="display:none">No laps yet.</div>
+          </div>
+
+          <!-- TIMER -->
+          <div id="viewTimer" style="display:none">
+            <div class="label">Timer</div>
+
+            <div class="row">
+              <div class="label" style="margin:0">Remaining</div>
+              <div class="inline">
+                <span class="chip"><span class="small">Time</span>&nbsp;<strong class="mono bigger" id="tmRemain">00:00:00</strong></span>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="label" style="margin:0">Set</div>
+              <div class="inline">
+                <input id="tmH" class="mono" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="HH" style="width:76px" />
+                <input id="tmM" class="mono" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" style="width:76px" />
+                <input id="tmS" class="mono" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="SS" style="width:76px" />
+                <button type="button" id="tmApply" class="btn-secondary">Apply</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="label" style="margin:0">Presets</div>
+              <div class="inline">
+                <button type="button" class="btn-secondary" data-preset="0:0:30">0:30</button>
+                <button type="button" class="btn-secondary" data-preset="0:1:0">1:00</button>
+                <button type="button" class="btn-secondary" data-preset="0:5:0">5:00</button>
+                <button type="button" class="btn-secondary" data-preset="0:10:0">10:00</button>
+                <button type="button" class="btn-secondary" data-preset="0:25:0">25:00</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="label" style="margin:0">Controls</div>
+              <div class="inline">
+                <button type="button" id="tmStart" class="btn-primary">Start</button>
+                <button type="button" id="tmPause" class="btn-warn" disabled>Pause</button>
+                <button type="button" id="tmResume" disabled>Resume</button>
+                <button type="button" id="tmReset" class="btn-danger" disabled>Reset</button>
+                <button type="button" id="tmTest" class="btn-secondary">Test Alarm</button>
+              </div>
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="label">Options</div>
+            <div class="inline">
+              <label class="chip" style="cursor:pointer">
+                <input type="checkbox" id="tmVibe" style="transform:scale(1.1)" checked />
+                <span class="small">Vibrate</span>
+              </label>
+              <label class="chip" style="cursor:pointer">
+                <input type="checkbox" id="tmNotify" style="transform:scale(1.1)" />
+                <span class="small">Notification</span>
+              </label>
+              <span class="chip"><span class="small">Wake Lock</span>&nbsp;<strong class="mono" id="wakeState">—</strong></span>
+            </div>
+
+            <div class="small" style="margin-top:10px">
+              Tip: iOS may require the screen to stay on for reliable alerts. Install as an app for best behavior.
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: STATUS / HISTORY -->
+        <aside class="card" aria-label="Status">
+          <div class="label">Status</div>
+
+          <div class="inline" style="justify-content:space-between">
+            <span class="chip"><span class="small">Mode</span>&nbsp;<strong id="modeLabel">Clock</strong></span>
+            <span class="chip"><span class="small">Offline</span>&nbsp;<strong class="mono" id="offlineState">—</strong></span>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="label">Timer Log</div>
+          <div class="inline" style="justify-content:space-between">
+            <span class="chip"><span class="small">Completed</span>&nbsp;<strong id="tmDoneCount">0</strong></span>
+            <span class="chip"><span class="small">Last</span>&nbsp;<strong class="mono" id="tmLastDone">—</strong></span>
+          </div>
+
+          <div class="hr"></div>
+
+          <div id="tmHistory"></div>
+          <div class="small" id="tmEmpty" style="display:none">No completed timers yet.</div>
+
+          <div class="hr"></div>
+
+          <div class="label">Quick Actions</div>
+          <div class="inline">
+            <button type="button" class="btn-secondary" id="btnCopyState">Copy Snapshot</button>
+            <button type="button" class="btn-danger" id="btnClearHistory">Clear Log</button>
+          </div>
+
+          <div class="small" style="margin-top:10px" id="pwaTiny">PWA: checking…</div>
+        </aside>
+      </div>
+
+      <div class="footer">
+        <div><strong>Helio Time Tools</strong> · rugged PWA · v1.0</div>
+        <div>Local storage · Offline · Install prompt</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" aria-live="polite"></div>
+
+<script>
+(() => {
+  /* ===================== UTIL ===================== */
+  const $ = (id)=>document.getElementById(id);
+  const K = {
+    theme: "helioTime.theme.v1",
+    mode: "helioTime.mode.v1",
+    sw: "helioTime.stopwatch.v1",
+    tm: "helioTime.timer.v1",
+    tmHistory: "helioTime.timerHistory.v1"
+  };
+
+  const readJSON = (key, fallback) => {
+    try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch{ return fallback; }
+  };
+  const writeJSON = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+
+  let toastTimer=null;
+  function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.opacity = "1";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> t.style.opacity="0", 1600);
+  }
+
+  function pad2(n){ return String(Math.max(0, n|0)).padStart(2,"0"); }
+
+  function fmtHMS(ms){
+    const total = Math.max(0, Math.floor(ms/1000));
+    const h = Math.floor(total/3600);
+    const m = Math.floor((total%3600)/60);
+    const s = total%60;
+    return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+  }
+
+  function fmtHMSms(ms){
+    const t = Math.max(0, Math.floor(ms));
+    const total = Math.floor(t/1000);
+    const h = Math.floor(total/3600);
+    const m = Math.floor((total%3600)/60);
+    const s = total%60;
+    const d = Math.floor((t%1000)/100); // tenths
+    return `${pad2(h)}:${pad2(m)}:${pad2(s)}.${d}`;
+  }
+
+  function nowPerf(){ return (performance && performance.now) ? performance.now() : Date.now(); }
+
+  /* ===================== THEME (from your rugged baseline) ===================== */
+  (function initTheme(){
+    const saved = localStorage.getItem(K.theme) || "blue";
+    document.documentElement.dataset.theme = saved === "light" ? "light" : "blue";
+
+    const toggle = $("themeToggle");
+    const buttons = toggle.querySelectorAll("button");
+    function setActive(mode){
+      buttons.forEach(b=>b.classList.toggle("active", b.dataset.theme===mode));
+    }
+    setActive(saved);
+
+    buttons.forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const mode = btn.dataset.theme;
+        document.documentElement.dataset.theme = mode;
+        localStorage.setItem(K.theme, mode);
+        setActive(mode);
+      });
+    });
+  })();
+
+  /* ===================== MODE TABS ===================== */
+  const tabClock = $("tabClock");
+  const tabStopwatch = $("tabStopwatch");
+  const tabTimer = $("tabTimer");
+
+  const viewClock = $("viewClock");
+  const viewStopwatch = $("viewStopwatch");
+  const viewTimer = $("viewTimer");
+
+  const modeLabel = $("modeLabel");
+
+  function setTabActive(btn){
+    document.querySelectorAll(".seg button[data-mode]").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+
+  function setMode(mode){
+    viewClock.style.display = (mode==="clock") ? "block" : "none";
+    viewStopwatch.style.display = (mode==="stopwatch") ? "block" : "none";
+    viewTimer.style.display = (mode==="timer") ? "block" : "none";
+
+    modeLabel.textContent = mode === "clock" ? "Clock" : (mode === "stopwatch" ? "Stopwatch" : "Timer");
+    localStorage.setItem(K.mode, mode);
+  }
+
+  tabClock.addEventListener("click", ()=>{ setTabActive(tabClock); setMode("clock"); });
+  tabStopwatch.addEventListener("click", ()=>{ setTabActive(tabStopwatch); setMode("stopwatch"); });
+  tabTimer.addEventListener("click", ()=>{ setTabActive(tabTimer); setMode("timer"); });
+
+  /* ===================== OFFLINE STATE ===================== */
+  const offlineState = $("offlineState");
+  function syncOnline(){
+    offlineState.textContent = navigator.onLine ? "Online" : "Offline";
+  }
+  window.addEventListener("online", syncOnline);
+  window.addEventListener("offline", syncOnline);
+  syncOnline();
+
+  /* ===================== CLOCK ===================== */
+  const clockTime = $("clockTime");
+  const clockDate = $("clockDate");
+  const clockTZ = $("clockTZ");
+  const clockSeconds = $("clockSeconds");
+  const clockUptime = $("clockUptime");
+
+  const bootAt = Date.now();
+  function tickClock(){
+    const d = new Date();
+    const hh = pad2(d.getHours());
+    const mm = pad2(d.getMinutes());
+    const ss = pad2(d.getSeconds());
+
+    clockTime.textContent = `${hh}:${mm}:${ss}`;
+    clockSeconds.textContent = `${d.getMilliseconds().toString().padStart(3,"0")} ms`;
+
+    const dateStr = d.toLocaleDateString(undefined, {weekday:"short", year:"numeric", month:"short", day:"2-digit"});
+    clockDate.textContent = dateStr;
+
+    const tzMin = d.getTimezoneOffset(); // minutes behind UTC
+    const sign = tzMin <= 0 ? "+" : "-";
+    const abs = Math.abs(tzMin);
+    const tzh = pad2(Math.floor(abs/60));
+    const tzm = pad2(abs%60);
+    clockTZ.textContent = `UTC${sign}${tzh}:${tzm}`;
+
+    clockUptime.textContent = fmtHMS(Date.now() - bootAt);
+  }
+  setInterval(tickClock, 200);
+  tickClock();
+
+  /* ===================== STOPWATCH ===================== */
+  const swElapsed = $("swElapsed");
+  const swStart = $("swStart");
+  const swPause = $("swPause");
+  const swResume = $("swResume");
+  const swLap = $("swLap");
+  const swReset = $("swReset");
+  const swLapCount = $("swLapCount");
+  const swLastLap = $("swLastLap");
+  const swLapList = $("swLapList");
+  const swEmpty = $("swEmpty");
+
+  // model (perf-time anchored for drift resistance)
+  let sw = readJSON(K.sw, {
+    running:false,
+    startPerf:0,
+    baseMs:0,       // accumulated when paused
+    laps:[],
+    lastLapMs:0
+  });
+
+  let swTickId = null;
+
+  function swNowMs(){
+    if(!sw) return 0;
+    return sw.running ? (sw.baseMs + (nowPerf() - sw.startPerf)) : sw.baseMs;
+  }
+
+  function swSetButtons(){
+    swStart.disabled = sw.running || sw.baseMs>0;
+    swPause.disabled = !sw.running;
+    swResume.disabled = sw.running || (sw.baseMs<=0);
+    swLap.disabled = !sw.running;
+    swReset.disabled = sw.running ? false : (sw.baseMs>0 || sw.laps.length>0) ? false : true;
+  }
+
+  function swRender(){
+    const ms = swNowMs();
+    swElapsed.textContent = fmtHMSms(ms);
+    swLapCount.textContent = String(sw.laps.length);
+    swLastLap.textContent = sw.laps.length ? fmtHMSms(sw.laps[0].lapMs) : "—";
+
+    swLapList.innerHTML = "";
+    swEmpty.style.display = sw.laps.length ? "none" : "block";
+
+    sw.laps.forEach((l, idx)=>{
+      const item = document.createElement("div");
+      item.className = "listItem";
+      item.innerHTML = `
+        <div class="listTop">
+          <div class="inline">
+            <span class="pill"><strong class="mono">Lap ${sw.laps.length - idx}</strong></span>
+            <span class="chip"><span class="small">Lap</span>&nbsp;<strong class="mono">${fmtHMSms(l.lapMs)}</strong></span>
+            <span class="chip"><span class="small">Total</span>&nbsp;<strong class="mono">${fmtHMSms(l.totalMs)}</strong></span>
+          </div>
+          <div class="small mono">${new Date(l.iso).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</div>
+        </div>
+      `;
+      swLapList.appendChild(item);
+      swLapList.appendChild(document.createElement("div")).style.height="10px";
+    });
+  }
+
+  function swPersist(){
+    writeJSON(K.sw, sw);
+  }
+
+  function swStartRun(){
+    if(sw.running) return;
+    sw.running = true;
+    sw.startPerf = nowPerf();
+    swPersist();
+    swSetButtons();
+    toast("Stopwatch started.");
+    swLoop();
+  }
+
+  function swPauseRun(){
+    if(!sw.running) return;
+    sw.baseMs = swNowMs();
+    sw.running = false;
+    sw.startPerf = 0;
+    swPersist();
+    swSetButtons();
+    toast("Paused.");
+    swRender();
+  }
+
+  function swResumeRun(){
+    if(sw.running) return;
+    if(sw.baseMs<=0) return;
+    sw.running = true;
+    sw.startPerf = nowPerf();
+    swPersist();
+    swSetButtons();
+    toast("Resumed.");
+    swLoop();
+  }
+
+  function swAddLap(){
+    const total = swNowMs();
+    const lapMs = total - (sw.lastLapMs || 0);
+    sw.lastLapMs = total;
+    sw.laps.unshift({ iso:new Date().toISOString(), totalMs: total, lapMs });
+    swPersist();
+    swRender();
+    toast("Lap recorded.");
+    if(navigator.vibrate) navigator.vibrate(18);
+  }
+
+  function swResetAll(){
+    sw = { running:false, startPerf:0, baseMs:0, laps:[], lastLapMs:0 };
+    swPersist();
+    swSetButtons();
+    swRender();
+    toast("Reset.");
+  }
+
+  function swLoop(){
+    if(swTickId) cancelAnimationFrame(swTickId);
+    const frame = ()=>{
+      if(!sw.running) return;
+      swRender();
+      swTickId = requestAnimationFrame(frame);
+    };
+    swTickId = requestAnimationFrame(frame);
+  }
+
+  swStart.addEventListener("click", swStartRun);
+  swPause.addEventListener("click", swPauseRun);
+  swResume.addEventListener("click", swResumeRun);
+  swLap.addEventListener("click", swAddLap);
+  swReset.addEventListener("click", swResetAll);
+
+  // init render
+  swSetButtons();
+  swRender();
+  if(sw.running){ // if persisted as running, resume with new anchor
+    sw.startPerf = nowPerf();
+    swPersist();
+    swLoop();
+  }
+
+  /* ===================== TIMER ===================== */
+  const tmRemain = $("tmRemain");
+  const tmH = $("tmH");
+  const tmM = $("tmM");
+  const tmS = $("tmS");
+  const tmApply = $("tmApply");
+
+  const tmStart = $("tmStart");
+  const tmPause = $("tmPause");
+  const tmResume = $("tmResume");
+  const tmReset = $("tmReset");
+  const tmTest = $("tmTest");
+
+  const tmVibe = $("tmVibe");
+  const tmNotify = $("tmNotify");
+  const wakeState = $("wakeState");
+
+  const tmDoneCount = $("tmDoneCount");
+  const tmLastDone = $("tmLastDone");
+  const tmHistory = $("tmHistory");
+  const tmEmpty = $("tmEmpty");
+
+  let wakeLock = null;
+
+  function clampInt(v){
+    const n = parseInt(String(v||"").replace(/[^\d]/g,""), 10);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }
+
+  let tm = readJSON(K.tm, {
+    running:false,
+    durationMs: 5*60*1000,
+    endAt: 0,            // epoch ms
+    remainMs: 5*60*1000  // when paused
+  });
+
+  let tmTick = null;
+
+  function tmPersist(){ writeJSON(K.tm, tm); }
+
+  function tmSetInputsFromDuration(){
+    const total = Math.max(0, Math.floor(tm.durationMs/1000));
+    const h = Math.floor(total/3600);
+    const m = Math.floor((total%3600)/60);
+    const s = total%60;
+    tmH.value = h ? String(h) : "";
+    tmM.value = m ? String(m) : "";
+    tmS.value = s ? String(s) : "";
+  }
+
+  function tmTargetRemain(){
+    if(tm.running) return Math.max(0, tm.endAt - Date.now());
+    return Math.max(0, tm.remainMs);
+  }
+
+  function tmSetButtons(){
+    const has = tm.durationMs > 0;
+    tmStart.disabled = tm.running || (!has) || (tmTargetRemain()<=0);
+    tmPause.disabled = !tm.running;
+    tmResume.disabled = tm.running || (tm.remainMs<=0) || (tmTargetRemain()<=0);
+    tmReset.disabled = tm.running ? false : true;
+  }
+
+  async function setWake(on){
+    try{
+      if(!("wakeLock" in navigator)){
+        wakeState.textContent = "n/a";
+        return;
+      }
+      if(on){
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeState.textContent = "On";
+        wakeLock.addEventListener("release", ()=>{ wakeState.textContent="Off"; wakeLock=null; });
+      }else{
+        if(wakeLock){ await wakeLock.release(); }
+        wakeLock = null;
+        wakeState.textContent = "Off";
+      }
+    }catch{
+      wakeState.textContent = "Off";
+    }
+  }
+
+  function tmRender(){
+    tmRemain.textContent = fmtHMS(tmTargetRemain());
+  }
+
+  function tmApplySet(){
+    const h = clampInt(tmH.value);
+    const m = clampInt(tmM.value);
+    const s = clampInt(tmS.value);
+    const ms = ((h*3600) + (m*60) + s) * 1000;
+
+    tm.durationMs = ms;
+    tm.running = false;
+    tm.endAt = 0;
+    tm.remainMs = ms;
+    tmPersist();
+    tmRender();
+    tmSetButtons();
+    toast(ms>0 ? "Applied." : "Set a duration.");
+  }
+
+  function tmStartRun(){
+    if(tm.running) return;
+    const remain = tmTargetRemain();
+    if(remain<=0){ toast("Set a duration."); return; }
+
+    tm.running = true;
+    tm.endAt = Date.now() + remain;
+    tm.remainMs = remain;
+    tmPersist();
+    tmSetButtons();
+    toast("Timer started.");
+    setWake(true);
+    tmLoop();
+  }
+
+  function tmPauseRun(){
+    if(!tm.running) return;
+    tm.remainMs = tmTargetRemain();
+    tm.running = false;
+    tm.endAt = 0;
+    tmPersist();
+    tmSetButtons();
+    toast("Paused.");
+    setWake(false);
+    tmRender();
+  }
+
+  function tmResumeRun(){
+    if(tm.running) return;
+    const remain = tmTargetRemain();
+    if(remain<=0) return;
+    tm.running = true;
+    tm.endAt = Date.now() + remain;
+    tmPersist();
+    tmSetButtons();
+    toast("Resumed.");
+    setWake(true);
+    tmLoop();
+  }
+
+  function tmResetRun(){
+    tm.running = false;
+    tm.endAt = 0;
+    tm.remainMs = tm.durationMs;
+    tmPersist();
+    tmSetButtons();
+    setWake(false);
+    tmRender();
+    toast("Reset.");
+  }
+
+  function tmPushHistory(entry){
+    const hist = readJSON(K.tmHistory, []);
+    hist.unshift(entry);
+    writeJSON(K.tmHistory, hist.slice(0, 80));
+  }
+
+  function tmRenderHistory(){
+    const hist = readJSON(K.tmHistory, []);
+    tmDoneCount.textContent = String(hist.length);
+    tmLastDone.textContent = hist.length ? fmtHMS(hist[0].durationMs) : "—";
+
+    tmHistory.innerHTML = "";
+    tmEmpty.style.display = hist.length ? "none" : "block";
+
+    hist.forEach((h)=>{
+      const item = document.createElement("div");
+      item.className = "listItem";
+      item.innerHTML = `
+        <div class="listTop">
+          <div class="inline">
+            <span class="pill"><strong class="mono">Done</strong></span>
+            <span class="chip"><span class="small">Duration</span>&nbsp;<strong class="mono">${fmtHMS(h.durationMs)}</strong></span>
+          </div>
+          <div class="small mono">${new Date(h.iso).toLocaleString(undefined,{month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>
+        </div>
+      `;
+      tmHistory.appendChild(item);
+      tmHistory.appendChild(document.createElement("div")).style.height="10px";
+    });
+  }
+
+  function beep(times=2){
+    // best-effort beep without external files
+    try{
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if(!Ctx) return;
+      const ctx = new Ctx();
+      let t = ctx.currentTime;
+      for(let i=0;i<times;i++){
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = 880;
+        g.gain.value = 0.0001;
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(t);
+        g.gain.exponentialRampToValueAtTime(0.6, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+        o.stop(t + 0.26);
+        t += 0.34;
+      }
+      setTimeout(()=>ctx.close(), 1200);
+    }catch{}
+  }
+
+  async function notifyDone(){
+    if(!tmNotify.checked) return;
+    try{
+      if(!("Notification" in window)) return;
+      if(Notification.permission === "default"){
+        const p = await Notification.requestPermission();
+        if(p !== "granted"){ toast("Notifications not granted."); return; }
+      }
+      if(Notification.permission === "granted"){
+        new Notification("Timer done", { body: "Helio Time Tools", silent: false });
+      }
+    }catch{}
+  }
+
+  function onTimerDone(){
+    const dur = tm.durationMs;
+    tm.running = false;
+    tm.endAt = 0;
+    tm.remainMs = 0;
+    tmPersist();
+    tmSetButtons();
+    setWake(false);
+    tmRender();
+
+    beep(3);
+    if(tmVibe.checked && navigator.vibrate) navigator.vibrate([120,80,120,80,250]);
+    notifyDone();
+
+    tmPushHistory({ iso:new Date().toISOString(), durationMs: dur });
+    tmRenderHistory();
+
+    toast("Timer done.");
+  }
+
+  function tmLoop(){
+    if(tmTick) cancelAnimationFrame(tmTick);
+    const frame = ()=>{
+      if(!tm.running) return;
+      const rem = tmTargetRemain();
+      tmRemain.textContent = fmtHMS(rem);
+      if(rem <= 0){
+        onTimerDone();
+        return;
+      }
+      tmTick = requestAnimationFrame(frame);
+    };
+    tmTick = requestAnimationFrame(frame);
+  }
+
+  tmApply.addEventListener("click", tmApplySet);
+  tmStart.addEventListener("click", tmStartRun);
+  tmPause.addEventListener("click", tmPauseRun);
+  tmResume.addEventListener("click", tmResumeRun);
+  tmReset.addEventListener("click", tmResetRun);
+  tmTest.addEventListener("click", ()=>{ beep(2); if(navigator.vibrate) navigator.vibrate(30); toast("Alarm test."); });
+
+  document.querySelectorAll('[data-preset]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const [h,m,s] = btn.dataset.preset.split(":").map(x=>parseInt(x,10));
+      tmH.value = h ? String(h) : "";
+      tmM.value = m ? String(m) : "";
+      tmS.value = s ? String(s) : "";
+      tmApplySet();
+    });
+  });
+
+  tmNotify.addEventListener("change", async ()=>{
+    if(tmNotify.checked){
+      if("Notification" in window && Notification.permission === "default"){
+        try{ await Notification.requestPermission(); }catch{}
+      }
+    }
+  });
+
+  // restore timer state
+  tmSetInputsFromDuration();
+  tmRender();
+  tmSetButtons();
+  tmRenderHistory();
+  if(tm.running){
+    // if we reloaded while running, resume loop; if endAt is in the past, complete
+    if(tmTargetRemain()<=0) onTimerDone();
+    else { setWake(true); tmLoop(); }
+  }else{
+    setWake(false);
+  }
+
+  /* ===================== SNAPSHOT / LOG ===================== */
+  function snapshotText(){
+    const mode = localStorage.getItem(K.mode) || "clock";
+    const parts = [];
+    parts.push("Helio Time Tools");
+    parts.push("");
+    parts.push(`Mode: ${mode}`);
+    parts.push(`Clock: ${$("clockTime").textContent} (${clockTZ.textContent})`);
+    parts.push(`Stopwatch: ${swElapsed.textContent} (laps ${sw.laps.length})`);
+    parts.push(`Timer: ${tmRemain.textContent} ${tm.running ? "(running)" : ""}`);
+    return parts.join("\n");
+  }
+
+  $("btnCopyState").addEventListener("click", ()=>{
+    const text = snapshotText();
+    navigator.clipboard?.writeText(text).then(()=>toast("Copied.")).catch(()=>prompt("Copy this:", text));
+  });
+
+  $("btnClearHistory").addEventListener("click", ()=>{
+    const ok = confirm("Clear timer completion log?");
+    if(!ok) return;
+    writeJSON(K.tmHistory, []);
+    tmRenderHistory();
+    toast("Cleared.");
+  });
+
+  /* ===================== INIT MODE ===================== */
+  (function initMode(){
+    const mode = localStorage.getItem(K.mode) || "clock";
+    if(mode==="stopwatch"){ setTabActive(tabStopwatch); setMode("stopwatch"); }
+    else if(mode==="timer"){ setTabActive(tabTimer); setMode("timer"); }
+    else { setTabActive(tabClock); setMode("clock"); }
+  })();
+
+  /* ===================== PWA INSTALL PROMPT + SW ===================== */
+  const pwaTiny = $("pwaTiny");
+  const btnInstall = $("btnInstall");
+  let deferredPrompt = null;
+
+  window.addEventListener("beforeinstallprompt", (e)=>{
+    e.preventDefault();
+    deferredPrompt = e;
+    btnInstall.style.display = "inline-flex";
+    pwaTiny.textContent = "PWA: install available.";
+  });
+
+  btnInstall.addEventListener("click", async ()=>{
+    if(!deferredPrompt){
+      toast("Use your browser’s Install / Add to Home Screen.");
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice.catch(()=>({outcome:"dismissed"}));
+    deferredPrompt = null;
+    btnInstall.style.display = "none";
+    toast(outcome === "accepted" ? "Installing…" : "Install dismissed.");
+  });
+
+  // SW register
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").then((reg)=>{
+        pwaTiny.textContent = "PWA: ready (offline enabled).";
+        // update in background
+        reg.update?.();
+      }).catch(()=>{
+        pwaTiny.textContent = "PWA: service worker failed to register.";
+      });
+    });
+  } else {
+    pwaTiny.textContent = "PWA: service worker not supported.";
+  }
+
+  /* ===================== iOS "installed" hint ===================== */
+  // best-effort detection
+  const isStandalone = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
+  if(isStandalone){
+    btnInstall.style.display = "none";
+    pwaTiny.textContent = "PWA: running as app.";
+  }
+})();
+</script>
+</body>
+</html>
