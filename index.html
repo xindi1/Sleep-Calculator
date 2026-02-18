@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b2a4a" />
+  <title>Sleep Calculator</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <style>
+    :root{
+      --bg: #071a2f;
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.08);
+      --text: #eaf2ff;
+      --muted: rgba(234,242,255,.75);
+      --line: rgba(234,242,255,.14);
+      --accent: #7cc4ff;
+      --accent2: #b7e1ff;
+      --danger: #ff6b6b;
+      --ok: #7CFFB2;
+      --shadow: 0 18px 48px rgba(0,0,0,.35);
+      --radius: 18px;
+      --radius2: 14px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:var(--font);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 0%, rgba(124,196,255,.22), transparent 60%),
+        radial-gradient(900px 600px at 80% 10%, rgba(183,225,255,.18), transparent 55%),
+        linear-gradient(180deg, #041324, var(--bg));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .wrap{
+      width:min(860px, 100%);
+      display:grid;
+      gap:14px;
+    }
+    header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:14px;
+      padding:4px 2px;
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    h1{
+      margin:0;
+      font-size:22px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      border-radius:999px;
+      box-shadow: 0 10px 26px rgba(0,0,0,.18);
+      user-select:none;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:14px;
+    }
+    @media (max-width: 860px){
+      .grid{ grid-template-columns: 1fr; }
+      header{ align-items:flex-start; flex-direction:column; }
+    }
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      background: rgba(255,255,255,.03);
+    }
+    .card .hd .h{
+      font-weight:650;
+      letter-spacing:.2px;
+      font-size:14px;
+    }
+    .card .bd{
+      padding:14px;
+      display:grid;
+      gap:12px;
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 520px){
+      .row{ grid-template-columns: 1fr; }
+    }
+    label{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    input[type="time"]{
+      width:100%;
+      padding:14px 12px;
+      border-radius:var(--radius2);
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      outline:none;
+      font-size:16px;
+    }
+    input[type="time"]:focus{
+      border-color: rgba(124,196,255,.55);
+      box-shadow: 0 0 0 3px rgba(124,196,255,.16);
+    }
+    .btns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    button{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding:12px 12px;
+      border-radius: 14px;
+      font-weight:650;
+      letter-spacing:.2px;
+      cursor:pointer;
+      box-shadow: 0 10px 26px rgba(0,0,0,.14);
+    }
+    button:hover{ background: rgba(255,255,255,.09); }
+    button.primary{
+      border-color: rgba(124,196,255,.55);
+      background: linear-gradient(180deg, rgba(124,196,255,.22), rgba(124,196,255,.10));
+    }
+    button.danger{
+      border-color: rgba(255,107,107,.55);
+      background: linear-gradient(180deg, rgba(255,107,107,.20), rgba(255,107,107,.08));
+    }
+    .result{
+      display:grid;
+      gap:10px;
+    }
+    .big{
+      font-size:34px;
+      font-weight:800;
+      letter-spacing:.3px;
+      line-height:1.05;
+    }
+    .meta{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .tag{
+      border:1px solid var(--line);
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.04);
+    }
+    .note{
+      border-top:1px solid var(--line);
+      padding-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+    .warn{
+      color: rgba(255,107,107,.95);
+      font-weight:650;
+    }
+    .ok{
+      color: rgba(124,255,178,.95);
+      font-weight:650;
+    }
+    footer{
+      padding: 6px 2px;
+      color: rgba(234,242,255,.55);
+      font-size:12px;
+      line-height:1.35;
+    }
+    a{ color: var(--accent2); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Sleep Calculator</h1>
+        <div class="sub">Enter <b>bed time</b> and <b>awake time</b>. Handles overnight sleep automatically.</div>
+      </div>
+      <div class="pill" id="statusPill">Offline-ready PWA • <span id="net">checking…</span></div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="hd">
+          <div class="h">Times</div>
+          <div class="sub" id="todayLine"></div>
+        </div>
+        <div class="bd">
+          <div class="row">
+            <label>
+              Bed time
+              <input id="bed" type="time" inputmode="numeric" />
+            </label>
+            <label>
+              Awake time
+              <input id="wake" type="time" inputmode="numeric" />
+            </label>
+          </div>
+
+          <div class="btns">
+            <button class="primary" id="calcBtn">Calculate</button>
+            <button id="nowWakeBtn" title="Set Awake time to now">Use now for awake</button>
+            <button id="swapBtn" title="Swap bed and awake times">Swap</button>
+            <button class="danger" id="clearBtn">Clear</button>
+          </div>
+
+          <div class="note">
+            Tip: If your bed time is later than your awake time, the app assumes you slept <b>overnight</b> into the next day.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="hd">
+          <div class="h">Result</div>
+          <div class="sub" id="savedHint">Auto-saves your last entry</div>
+        </div>
+        <div class="bd">
+          <div class="result">
+            <div class="big" id="duration">—</div>
+            <div class="meta">
+              <div class="tag" id="minsTag">Minutes: —</div>
+              <div class="tag" id="hrsTag">Decimal hours: —</div>
+              <div class="tag" id="overnightTag">Overnight: —</div>
+            </div>
+            <div class="note" id="qualityNote">
+              Enter times to see your sleep duration.
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      Install: open in mobile browser → Share → <b>Add to Home Screen</b> (iOS) or <b>Install app</b> (Android/Chrome).
+    </footer>
+  </div>
+
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+
+  const bed = $("bed");
+  const wake = $("wake");
+  const durationEl = $("duration");
+  const minsTag = $("minsTag");
+  const hrsTag = $("hrsTag");
+  const overnightTag = $("overnightTag");
+  const qualityNote = $("qualityNote");
+  const todayLine = $("todayLine");
+  const net = $("net");
+
+  const LS_KEY = "sleepcalc_v1";
+  const pad2 = (n)=>String(n).padStart(2,"0");
+
+  function setTodayLine(){
+    const d = new Date();
+    const opts = { weekday:"short", year:"numeric", month:"short", day:"2-digit" };
+    todayLine.textContent = d.toLocaleDateString(undefined, opts);
+  }
+
+  function toMinutes(t){
+    // t: "HH:MM"
+    if(!t || !/^\d{2}:\d{2}$/.test(t)) return null;
+    const [hh, mm] = t.split(":").map(Number);
+    if(hh<0 || hh>23 || mm<0 || mm>59) return null;
+    return hh*60 + mm;
+  }
+
+  function formatDuration(totalMins){
+    const h = Math.floor(totalMins/60);
+    const m = totalMins % 60;
+    const hLabel = h === 1 ? "hr" : "hrs";
+    return `${h} ${hLabel} ${m} min`;
+  }
+
+  function saveState(){
+    const payload = { bed: bed.value || "", wake: wake.value || "" };
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(payload)); }catch(e){}
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if(!raw) return;
+      const p = JSON.parse(raw);
+      if(p && typeof p === "object"){
+        if(typeof p.bed === "string") bed.value = p.bed;
+        if(typeof p.wake === "string") wake.value = p.wake;
+      }
+    }catch(e){}
+  }
+
+  function calc(){
+    const b = toMinutes(bed.value);
+    const w = toMinutes(wake.value);
+
+    if(b === null || w === null){
+      durationEl.textContent = "—";
+      minsTag.textContent = "Minutes: —";
+      hrsTag.textContent = "Decimal hours: —";
+      overnightTag.textContent = "Overnight: —";
+      qualityNote.innerHTML = `<span class="warn">Enter both times</span> (HH:MM).`;
+      return;
+    }
+
+    let overnight = false;
+    let diff = w - b;
+    if(diff < 0){
+      diff += 24*60;
+      overnight = true;
+    }
+
+    // If diff is 0, interpret as 24 hours? Usually it's a mistake. We'll treat as 0 and warn.
+    if(diff === 0){
+      durationEl.textContent = "0 hrs 0 min";
+      minsTag.textContent = "Minutes: 0";
+      hrsTag.textContent = "Decimal hours: 0.00";
+      overnightTag.textContent = "Overnight: —";
+      qualityNote.innerHTML = `<span class="warn">Bed time equals awake time.</span> If you meant a full day, adjust one of the times.`;
+      return;
+    }
+
+    const dec = (diff/60).toFixed(2);
+
+    durationEl.textContent = formatDuration(diff);
+    minsTag.textContent = `Minutes: ${diff}`;
+    hrsTag.textContent = `Decimal hours: ${dec}`;
+    overnightTag.textContent = `Overnight: ${overnight ? "Yes" : "No"}`;
+
+    // Light “interpretation” note
+    let msg = "";
+    if(diff < 240){
+      msg = `<span class="warn">Very short sleep window</span> — if this is intentional (nap), you’re good. If not, consider earlier bed time.`;
+    } else if(diff < 420){
+      msg = `Moderate sleep window. If you’re training (running/swimming), you may feel better closer to <span class="ok">7–9 hours</span>.`;
+    } else if(diff <= 540){
+      msg = `<span class="ok">Solid sleep window</span> — likely enough for recovery for most days.`;
+    } else {
+      msg = `Long sleep window. If you’re consistently needing this much, check for accumulated sleep debt or schedule strain.`;
+    }
+    qualityNote.innerHTML = msg;
+
+    saveState();
+  }
+
+  function setWakeNow(){
+    const d = new Date();
+    wake.value = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    saveState();
+    calc();
+  }
+
+  function swap(){
+    const tmp = bed.value;
+    bed.value = wake.value;
+    wake.value = tmp;
+    saveState();
+    calc();
+  }
+
+  function clearAll(){
+    bed.value = "";
+    wake.value = "";
+    durationEl.textContent = "—";
+    minsTag.textContent = "Minutes: —";
+    hrsTag.textContent = "Decimal hours: —";
+    overnightTag.textContent = "Overnight: —";
+    qualityNote.textContent = "Enter times to see your sleep duration.";
+    try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  }
+
+  function updateNet(){
+    net.textContent = navigator.onLine ? "online" : "offline";
+  }
+
+  $("calcBtn").addEventListener("click", calc);
+  $("nowWakeBtn").addEventListener("click", setWakeNow);
+  $("swapBtn").addEventListener("click", swap);
+  $("clearBtn").addEventListener("click", clearAll);
+
+  bed.addEventListener("change", ()=>{ saveState(); calc(); });
+  wake.addEventListener("change", ()=>{ saveState(); calc(); });
+
+  window.addEventListener("online", updateNet);
+  window.addEventListener("offline", updateNet);
+
+  // Init
+  setTodayLine();
+  loadState();
+  updateNet();
+  if(bed.value && wake.value) calc();
+
+  // Register service worker
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", ()=>{
+      navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    });
+  }
+})();
+</script>
+</body>
+</html>
